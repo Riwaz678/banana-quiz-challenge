@@ -1,0 +1,11 @@
+{
+  "name": "banana-quiz-challenge",
+  "version": "1.0.0",
+  "description": "CIS046-3 assignment 1 - event-driven banana quiz built on the UoB Banana API",
+  "private": true,
+  "scripts": {
+    "start": "node server/server.js",
+    "start:leaderboard": "node leaderboard/service.js",
+    "test": "node --test tests/"
+  }
+}
