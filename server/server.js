@@ -13,8 +13,25 @@ const MIME_TYPES = {
   '.js': 'text/javascript; charset=utf-8'
 };
 
+const { fetchRawQuestion } = require('./lib/bananaClient');
+
 const server = http.createServer((req, res) => {
   const urlPath = new URL(req.url, `http://${req.headers.host}`).pathname;
+
+  // proxy to the banana api so the browser never talks to it directly
+  if (urlPath === '/api/banana' && req.method === 'GET') {
+    fetchRawQuestion()
+      .then((data) => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(data));
+      })
+      .catch((err) => {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      });
+    return;
+  }
+
   const relative = urlPath === '/' ? 'index.html' : urlPath.slice(1);
   const filePath = path.join(CLIENT_DIR, relative);
 
