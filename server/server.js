@@ -20,7 +20,7 @@ const server = http.createServer((req, res) => {
 
   // proxy to the banana api so the browser never talks to it directly
   if (urlPath === '/api/banana' && req.method === 'GET') {
-    fetchRawQuestion()
+    fetchRawQuestion(process.env.BANANA_URL)
       .then((data) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(data));
