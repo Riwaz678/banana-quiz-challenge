@@ -26,7 +26,8 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify(data));
       })
       .catch((err) => {
-        res.writeHead(502, { 'Content-Type': 'application/json' });
+        const statusCode = err.kind === 'timeout' ? 504 : 502;
+        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: err.message }));
       });
     return;

@@ -52,3 +52,28 @@ main {
   border-radius: 8px;
   border: 2px solid #f0e6c8;
 }
+
+button {
+  background: #f5b301;
+  border: none;
+  border-radius: 6px;
+  padding: 0.55rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #2d2a26;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #e0a500;
+}
+
+.code-output {
+  background: #2d2a26;
+  color: #b8e986;
+  padding: 0.8rem;
+  border-radius: 6px;
+  margin-top: 0.8rem;
+  overflow-x: auto;
+  font-size: 0.85rem;
+}
