@@ -6,6 +6,6 @@
   "scripts": {
     "start": "node server/server.js",
     "start:leaderboard": "node leaderboard/service.js",
-    "test": "node --test tests/"
+    "test": "node --test"
   }
 }
