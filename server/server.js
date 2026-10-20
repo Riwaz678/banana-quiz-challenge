@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { fetchRawQuestion } = require('./lib/bananaClient');
 const { createGameStore } = require('./lib/gameStore');
+const { createUserStore } = require('./lib/auth');
 const bus = require('./lib/gameEvents');
 
 const PORT = process.env.PORT || 3000;
@@ -17,6 +18,14 @@ const MIME_TYPES = {
 };
 
 const gameStore = createGameStore();
+const userStore = createUserStore();
+
+bus.on('user:registered', (e) => {
+  console.log(`[event] new account: ${e.username}`);
+});
+bus.on('user:logged-in', (e) => {
+  console.log(`[event] ${e.username} logged in`);
+});
 
 bus.on('question:served', (e) => {
   console.log(`[event] question served to player ${e.playerId.slice(0, 8)}`);
@@ -110,6 +119,32 @@ const server = http.createServer(async (req, res) => {
     if (urlPath === '/api/score' && req.method === 'GET') {
       const playerId = getPlayerId(req, res);
       json(res, 200, { score: gameStore.stateFor(playerId).score });
+      return;
+    }
+
+    if (urlPath === '/api/register' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const username = String(body.username || '').trim().toLowerCase();
+      const result = userStore.register(username, body.password);
+      if (!result.ok) {
+        json(res, 400, { error: result.error });
+        return;
+      }
+      bus.emit('user:registered', { username });
+      json(res, 201, { created: true });
+      return;
+    }
+
+    if (urlPath === '/api/login' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const username = String(body.username || '').trim().toLowerCase();
+      if (!userStore.verify(username, body.password)) {
+        // same message for unknown user and wrong password on purpose
+        json(res, 401, { error: 'wrong username or password' });
+        return;
+      }
+      bus.emit('user:logged-in', { username });
+      json(res, 200, { user: username });
       return;
     }
 

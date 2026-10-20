@@ -78,6 +78,33 @@ button:hover {
   font-size: 0.85rem;
 }
 
+.auth-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1.4rem;
+  margin-top: 0.6rem;
+}
+
+.auth-grid form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.auth-grid h3 {
+  font-size: 1rem;
+  margin-bottom: 0.3rem;
+}
+
+.auth-grid button {
+  margin-top: 0.5rem;
+  align-self: flex-start;
+}
+
+#auth-status {
+  margin-top: 0.9rem;
+}
+
 form {
   display: flex;
   gap: 0.6rem;

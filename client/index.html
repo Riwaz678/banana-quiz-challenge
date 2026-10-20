@@ -13,6 +13,29 @@
   </header>
 
   <main>
+    <section id="auth-box" class="card">
+      <h2>Who are you?</h2>
+      <div class="auth-grid">
+        <form id="login-form">
+          <h3>Log in</h3>
+          <label for="login-user">Username</label>
+          <input id="login-user" name="username" autocomplete="username" required>
+          <label for="login-pass">Password</label>
+          <input id="login-pass" name="password" type="password" autocomplete="current-password" required>
+          <button type="submit">Log in</button>
+        </form>
+        <form id="register-form">
+          <h3>Register</h3>
+          <label for="register-user">Username</label>
+          <input id="register-user" name="username" autocomplete="username" required>
+          <label for="register-pass">Password (8+ characters)</label>
+          <input id="register-pass" name="password" type="password" minlength="8" autocomplete="new-password" required>
+          <button type="submit">Create account</button>
+        </form>
+      </div>
+      <p id="auth-status" class="feedback" hidden></p>
+    </section>
+
     <section id="question-box" class="card">
       <h2>Question</h2>
       <p id="status">Loading the banana...</p>

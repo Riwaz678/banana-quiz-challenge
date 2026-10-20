@@ -7,6 +7,9 @@ const answerInput = document.getElementById('answer-input');
 const feedbackLine = document.getElementById('feedback');
 const scoreLine = document.getElementById('score-line');
 const newQuestionButton = document.getElementById('new-question');
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+const authStatus = document.getElementById('auth-status');
 
 async function requestJson(path, options = {}) {
   const res = await fetch(path, {
@@ -60,6 +63,34 @@ async function submitAnswer(event) {
     feedbackLine.hidden = false;
   }
 }
+
+async function handleAuth(form, path, message) {
+  const username = form.elements.username.value.trim().toLowerCase();
+  const password = form.elements.password.value;
+  try {
+    await requestJson(path, {
+      method: 'POST',
+      body: JSON.stringify({ username, password })
+    });
+    authStatus.textContent = message;
+    authStatus.className = 'feedback good';
+    form.reset();
+  } catch (err) {
+    authStatus.textContent = err.message;
+    authStatus.className = 'feedback bad';
+  }
+  authStatus.hidden = false;
+}
+
+loginForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  handleAuth(loginForm, '/api/login', 'Logged in, you can play.');
+});
+
+registerForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  handleAuth(registerForm, '/api/register', 'Account created, log in with it now.');
+});
 
 answerForm.addEventListener('submit', submitAnswer);
 newQuestionButton.addEventListener('click', loadQuestion);

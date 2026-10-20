@@ -1,5 +1,4 @@
 node_modules/
 .agent_workspace/
-data/*.json
-!data/.gitkeep
+**/data/*.json
 *.log
