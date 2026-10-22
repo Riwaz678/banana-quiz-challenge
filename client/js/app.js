@@ -10,6 +10,11 @@ const newQuestionButton = document.getElementById('new-question');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 const authStatus = document.getElementById('auth-status');
+const authBox = document.getElementById('auth-box');
+const questionBox = document.getElementById('question-box');
+const userBar = document.getElementById('user-bar');
+const whoLabel = document.getElementById('who');
+const logoutButton = document.getElementById('logout');
 
 async function requestJson(path, options = {}) {
   const res = await fetch(path, {
@@ -17,10 +22,37 @@ async function requestJson(path, options = {}) {
     ...options
   });
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    // session expired or never existed, send the player back to the login
+    showLoggedOut();
+  }
   if (!res.ok) {
     throw new Error(data.error || `request failed with status ${res.status}`);
   }
   return data;
+}
+
+function showLoggedIn(user) {
+  whoLabel.textContent = user;
+  userBar.hidden = false;
+  authBox.hidden = true;
+  questionBox.hidden = false;
+  loadQuestion();
+}
+
+function showLoggedOut() {
+  userBar.hidden = true;
+  authBox.hidden = false;
+  questionBox.hidden = true;
+}
+
+async function checkSession() {
+  try {
+    const data = await requestJson('/api/session');
+    showLoggedIn(data.user);
+  } catch (err) {
+    showLoggedOut();
+  }
 }
 
 async function loadQuestion() {
@@ -64,27 +96,33 @@ async function submitAnswer(event) {
   }
 }
 
-async function handleAuth(form, path, message) {
+async function handleAuth(form, path, successMessage) {
   const username = form.elements.username.value.trim().toLowerCase();
   const password = form.elements.password.value;
   try {
-    await requestJson(path, {
+    const data = await requestJson(path, {
       method: 'POST',
       body: JSON.stringify({ username, password })
     });
-    authStatus.textContent = message;
-    authStatus.className = 'feedback good';
     form.reset();
+    authStatus.hidden = true;
+    if (path === '/api/login') {
+      showLoggedIn(data.user);
+      return;
+    }
+    authStatus.textContent = successMessage;
+    authStatus.className = 'feedback good';
+    authStatus.hidden = false;
   } catch (err) {
     authStatus.textContent = err.message;
     authStatus.className = 'feedback bad';
+    authStatus.hidden = false;
   }
-  authStatus.hidden = false;
 }
 
 loginForm.addEventListener('submit', (event) => {
   event.preventDefault();
-  handleAuth(loginForm, '/api/login', 'Logged in, you can play.');
+  handleAuth(loginForm, '/api/login');
 });
 
 registerForm.addEventListener('submit', (event) => {
@@ -92,10 +130,16 @@ registerForm.addEventListener('submit', (event) => {
   handleAuth(registerForm, '/api/register', 'Account created, log in with it now.');
 });
 
+logoutButton.addEventListener('click', async () => {
+  try {
+    await requestJson('/api/logout', { method: 'POST' });
+  } catch (err) {
+    console.error(err);
+  }
+  showLoggedOut();
+});
+
 answerForm.addEventListener('submit', submitAnswer);
 newQuestionButton.addEventListener('click', loadQuestion);
 
-document.addEventListener('DOMContentLoaded', () => {
-  statusLine.textContent = 'Ready when you are.';
-  loadQuestion();
-});
+document.addEventListener('DOMContentLoaded', checkSession);

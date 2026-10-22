@@ -8,8 +8,16 @@
 </head>
 <body>
   <header>
-    <h1>Banana Quiz Challenge</h1>
-    <p class="tagline">Enter the missing digit before the banana notices.</p>
+    <div class="header-row">
+      <div>
+        <h1>Banana Quiz Challenge</h1>
+        <p class="tagline">Enter the missing digit before the banana notices.</p>
+      </div>
+      <div id="user-bar" class="user-bar" hidden>
+        <span>Playing as <strong id="who"></strong></span>
+        <button id="logout" type="button">Log out</button>
+      </div>
+    </div>
   </header>
 
   <main>
@@ -36,7 +44,7 @@
       <p id="auth-status" class="feedback" hidden></p>
     </section>
 
-    <section id="question-box" class="card">
+    <section id="question-box" class="card" hidden>
       <h2>Question</h2>
       <p id="status">Loading the banana...</p>
       <img id="question-image" alt="banana question" hidden>

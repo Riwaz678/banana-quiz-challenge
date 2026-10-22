@@ -26,6 +26,24 @@ header h1 {
   color: #5c4a00;
 }
 
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.user-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.user-bar button {
+  background: #fff3cf;
+}
+
 main {
   max-width: 900px;
   margin: 0 auto;

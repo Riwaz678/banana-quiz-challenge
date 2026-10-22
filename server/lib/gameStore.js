@@ -1,7 +1,5 @@
-// Keeps the current question and score for each browser.
-// Players are identified by a random cookie for now, a proper login comes later.
-const crypto = require('node:crypto');
-
+// Keeps the current question and score for each player.
+// State is keyed by the logged in username.
 function createGameStore() {
   const players = new Map();
 
@@ -36,10 +34,6 @@ function createGameStore() {
         state.question = null;
       }
       return { ok: true, correct, score: state.score, attempts: state.attempts };
-    },
-
-    newPlayerId() {
-      return crypto.randomBytes(16).toString('hex');
     }
   };
 }

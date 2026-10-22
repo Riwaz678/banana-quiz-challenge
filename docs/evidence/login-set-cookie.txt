@@ -1,0 +1,10 @@
+﻿POST /api/login HTTP/1.1
+Content-Type: application/json
+
+{"username":"riwaz","password":"banana123"}
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Set-Cookie: sid=9a7cde26490a28fb54532cbf8c1148fa0f7825e15e6f4847a14b4dbb9c83a0f6; Path=/; HttpOnly; SameSite=Lax; Max-Age=3600
+
+{"user":"riwaz"}

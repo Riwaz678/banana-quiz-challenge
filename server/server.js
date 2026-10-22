@@ -6,6 +6,7 @@ const path = require('node:path');
 const { fetchRawQuestion } = require('./lib/bananaClient');
 const { createGameStore } = require('./lib/gameStore');
 const { createUserStore } = require('./lib/auth');
+const { createSessionStore, parseCookies, SESSION_TTL_MS } = require('./lib/sessions');
 const bus = require('./lib/gameEvents');
 
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,7 @@ const MIME_TYPES = {
 
 const gameStore = createGameStore();
 const userStore = createUserStore();
+const sessionStore = createSessionStore();
 
 bus.on('user:registered', (e) => {
   console.log(`[event] new account: ${e.username}`);
@@ -26,9 +28,12 @@ bus.on('user:registered', (e) => {
 bus.on('user:logged-in', (e) => {
   console.log(`[event] ${e.username} logged in`);
 });
+bus.on('user:logged-out', (e) => {
+  console.log(`[event] ${e.username} logged out`);
+});
 
 bus.on('question:served', (e) => {
-  console.log(`[event] question served to player ${e.playerId.slice(0, 8)}`);
+  console.log(`[event] question served to ${e.username}`);
 });
 bus.on('answer:correct', (e) => {
   console.log(`[event] correct answer, score is now ${e.score}`);
@@ -63,16 +68,21 @@ function readJsonBody(req) {
   });
 }
 
-// hands out a random id cookie on first contact, later replaced by the login
-function getPlayerId(req, res) {
-  const cookieHeader = req.headers.cookie || '';
-  const match = cookieHeader.match(/(?:^|;\s*)playerid=([a-f0-9]+)/);
-  if (match) {
-    return match[1];
+// walks the session cookie, returns null for anonymous visitors
+function currentUsername(req) {
+  const cookies = parseCookies(req.headers.cookie);
+  const session = sessionStore.get(cookies.sid);
+  return session ? session.username : null;
+}
+
+// for routes only logged in players may use, answers 401 and returns null
+function requireUser(req, res) {
+  const username = currentUsername(req);
+  if (!username) {
+    json(res, 401, { error: 'log in first' });
+    return null;
   }
-  const id = gameStore.newPlayerId();
-  res.setHeader('Set-Cookie', `playerid=${id}; Path=/; HttpOnly; SameSite=Lax`);
-  return id;
+  return username;
 }
 
 const server = http.createServer(async (req, res) => {
@@ -87,28 +97,30 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (urlPath === '/api/question' && req.method === 'GET') {
-      const playerId = getPlayerId(req, res);
+      const username = requireUser(req, res);
+      if (!username) return;
       const data = await fetchRawQuestion(process.env.BANANA_URL);
       // the solution stays on the server, the client only gets the image
-      gameStore.setQuestion(playerId, {
+      gameStore.setQuestion(username, {
         image: data.question,
         solution: String(data.solution)
       });
-      bus.emit('question:served', { playerId, image: data.question });
+      bus.emit('question:served', { username, image: data.question });
       json(res, 200, { image: data.question });
       return;
     }
 
     if (urlPath === '/api/answer' && req.method === 'POST') {
-      const playerId = getPlayerId(req, res);
+      const username = requireUser(req, res);
+      if (!username) return;
       const body = await readJsonBody(req);
-      const result = gameStore.checkAnswer(playerId, body.answer);
+      const result = gameStore.checkAnswer(username, body.answer);
       if (!result.ok) {
         json(res, 400, { error: result.reason });
         return;
       }
       bus.emit(result.correct ? 'answer:correct' : 'answer:wrong', {
-        playerId,
+        username,
         answer: body.answer,
         score: result.score
       });
@@ -117,8 +129,9 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (urlPath === '/api/score' && req.method === 'GET') {
-      const playerId = getPlayerId(req, res);
-      json(res, 200, { score: gameStore.stateFor(playerId).score });
+      const username = requireUser(req, res);
+      if (!username) return;
+      json(res, 200, { score: gameStore.stateFor(username).score });
       return;
     }
 
@@ -143,8 +156,35 @@ const server = http.createServer(async (req, res) => {
         json(res, 401, { error: 'wrong username or password' });
         return;
       }
+      const sid = sessionStore.create(username);
+      res.setHeader(
+        'Set-Cookie',
+        `sid=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_TTL_MS / 1000}`
+      );
       bus.emit('user:logged-in', { username });
       json(res, 200, { user: username });
+      return;
+    }
+
+    if (urlPath === '/api/session' && req.method === 'GET') {
+      const username = currentUsername(req);
+      if (!username) {
+        json(res, 401, { error: 'no active session' });
+        return;
+      }
+      json(res, 200, { user: username });
+      return;
+    }
+
+    if (urlPath === '/api/logout' && req.method === 'POST') {
+      const cookies = parseCookies(req.headers.cookie);
+      const session = sessionStore.get(cookies.sid);
+      if (session) {
+        sessionStore.destroy(cookies.sid);
+        bus.emit('user:logged-out', { username: session.username });
+      }
+      res.setHeader('Set-Cookie', 'sid=; Path=/; HttpOnly; Max-Age=0');
+      json(res, 200, { loggedOut: true });
       return;
     }
 
