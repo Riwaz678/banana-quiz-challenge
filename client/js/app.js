@@ -15,6 +15,13 @@ const questionBox = document.getElementById('question-box');
 const userBar = document.getElementById('user-bar');
 const whoLabel = document.getElementById('who');
 const logoutButton = document.getElementById('logout');
+const leaderboardBox = document.getElementById('leaderboard-box');
+const leaderboardBody = document.getElementById('leaderboard-body');
+const leaderboardNote = document.getElementById('leaderboard-note');
+const feedBox = document.getElementById('feed-box');
+const feedList = document.getElementById('feed-list');
+
+let eventStream = null;
 
 async function requestJson(path, options = {}) {
   const res = await fetch(path, {
@@ -37,6 +44,10 @@ function showLoggedIn(user) {
   userBar.hidden = false;
   authBox.hidden = true;
   questionBox.hidden = false;
+  leaderboardBox.hidden = false;
+  feedBox.hidden = false;
+  refreshLeaderboard();
+  startEventStream();
   loadQuestion();
 }
 
@@ -44,6 +55,69 @@ function showLoggedOut() {
   userBar.hidden = true;
   authBox.hidden = false;
   questionBox.hidden = true;
+  leaderboardBox.hidden = true;
+  feedBox.hidden = true;
+  if (eventStream) {
+    eventStream.close();
+    eventStream = null;
+  }
+}
+
+async function refreshLeaderboard() {
+  try {
+    const data = await requestJson('/api/leaderboard');
+    leaderboardBody.replaceChildren(
+      ...data.scores.map((entry, index) => {
+        const row = document.createElement('tr');
+        const rank = document.createElement('td');
+        const name = document.createElement('td');
+        const score = document.createElement('td');
+        rank.textContent = index + 1;
+        name.textContent = entry.username;
+        score.textContent = entry.score;
+        row.append(rank, name, score);
+        return row;
+      })
+    );
+    leaderboardNote.hidden = true;
+  } catch (err) {
+    // the game still works without the other process, say so quietly
+    leaderboardNote.hidden = false;
+  }
+}
+
+function addFeedLine(text) {
+  const line = document.createElement('li');
+  line.textContent = `${new Date().toLocaleTimeString()} — ${text}`;
+  feedList.prepend(line);
+  while (feedList.children.length > 10) {
+    feedList.lastElementChild.remove();
+  }
+}
+
+// EventSource opens a long lived connection, the server pushes, the browser
+// fires a message event per frame - no polling needed
+function startEventStream() {
+  if (eventStream) {
+    eventStream.close();
+  }
+  eventStream = new EventSource('/api/events');
+
+  eventStream.onmessage = (message) => {
+    const event = JSON.parse(message.data);
+    if (event.type === 'hello') {
+      addFeedLine(`live connection open for ${event.user}`);
+    } else if (event.type === 'activity') {
+      addFeedLine(event.text);
+    } else if (event.type === 'leaderboard-changed') {
+      refreshLeaderboard();
+    }
+  };
+
+  eventStream.onerror = () => {
+    // the browser reconnects on its own, closing on logout stops that
+    addFeedLine('live connection dropped, retrying...');
+  };
 }
 
 async function checkSession() {

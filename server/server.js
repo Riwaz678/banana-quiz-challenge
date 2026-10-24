@@ -7,6 +7,7 @@ const { fetchRawQuestion } = require('./lib/bananaClient');
 const { createGameStore } = require('./lib/gameStore');
 const { createUserStore } = require('./lib/auth');
 const { createSessionStore, parseCookies, SESSION_TTL_MS } = require('./lib/sessions');
+const leaderboardClient = require('./lib/leaderboardClient');
 const bus = require('./lib/gameEvents');
 
 const PORT = process.env.PORT || 3000;
@@ -37,10 +38,30 @@ bus.on('question:served', (e) => {
 });
 bus.on('answer:correct', (e) => {
   console.log(`[event] correct answer, score is now ${e.score}`);
+  broadcastSse({ type: 'activity', text: `${e.username} got one right and is on ${e.score}` });
+  // score goes to the other process, a failure there must not fail the answer
+  leaderboardClient
+    .postScore({ username: e.username, score: e.score })
+    .then(() => broadcastSse({ type: 'leaderboard-changed' }))
+    .catch((err) => console.error(`[error] could not save score: ${err.message}`));
 });
 bus.on('answer:wrong', (e) => {
   console.log(`[event] wrong answer: ${e.answer}`);
+  broadcastSse({ type: 'activity', text: `${e.username} guessed ${e.answer}, not the digit` });
 });
+bus.on('user:logged-in', (e) => {
+  broadcastSse({ type: 'activity', text: `${e.username} came online` });
+});
+
+// every open event stream gets every broadcast, see /api/events below
+const sseClients = new Set();
+
+function broadcastSse(event) {
+  const frame = `data: ${JSON.stringify(event)}\n\n`;
+  for (const client of sseClients) {
+    client.write(frame);
+  }
+}
 
 function json(res, status, payload) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
@@ -132,6 +153,38 @@ const server = http.createServer(async (req, res) => {
       const username = requireUser(req, res);
       if (!username) return;
       json(res, 200, { score: gameStore.stateFor(username).score });
+      return;
+    }
+
+    if (urlPath === '/api/leaderboard' && req.method === 'GET') {
+      try {
+        const scores = await leaderboardClient.getScores();
+        json(res, 200, { scores });
+      } catch (err) {
+        json(res, 502, { error: err.message });
+      }
+      return;
+    }
+
+    // server sent events: the client holds this open and the bus pushes
+    // frames down it whenever something happens in the game
+    if (urlPath === '/api/events' && req.method === 'GET') {
+      const username = requireUser(req, res);
+      if (!username) return;
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive'
+      });
+      res.write(`data: ${JSON.stringify({ type: 'hello', user: username })}\n\n`);
+      sseClients.add(res);
+      const keepAlive = setInterval(() => {
+        res.write(': ping\n\n');
+      }, 25000);
+      req.on('close', () => {
+        clearInterval(keepAlive);
+        sseClients.delete(res);
+      });
       return;
     }
 

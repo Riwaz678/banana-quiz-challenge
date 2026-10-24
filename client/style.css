@@ -167,3 +167,40 @@ input:focus {
 #new-question {
   margin-top: 0.9rem;
 }
+
+.leaderboard {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.4rem;
+}
+
+.leaderboard th,
+.leaderboard td {
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid #eee3c8;
+}
+
+.leaderboard tr:first-child td {
+  font-weight: 700;
+  color: #b8860b;
+}
+
+.feed {
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.feed li {
+  font-size: 0.9rem;
+  padding: 0.3rem 0.5rem;
+  background: #fff9e8;
+  border-radius: 5px;
+}
+
+.muted {
+  margin-top: 0.6rem;
+  font-size: 0.88rem;
+  color: #8a7d5b;
+}
