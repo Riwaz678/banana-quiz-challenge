@@ -47,8 +47,8 @@ function readJsonBody(req) {
 }
 
 function createGameServer(options = {}) {
-  const bananaUrl = options.bananaUrl;
-  const leaderboardUrl = options.leaderboardUrl;
+  const bananaUrl = options.bananaUrl || process.env.BANANA_URL;
+  const leaderboardUrl = options.leaderboardUrl || process.env.LEADERBOARD_URL;
   const userStore = createUserStore(options.usersFile ? { file: options.usersFile } : {});
   const sessionStore = createSessionStore(
     options.sessionTtlMs ? { ttlMs: options.sessionTtlMs } : {}
