@@ -9,7 +9,7 @@ const { createGameStore } = require('./lib/gameStore');
 const { createUserStore } = require('./lib/auth');
 const { createSessionStore, parseCookies, SESSION_TTL_MS } = require('./lib/sessions');
 const leaderboardClient = require('./lib/leaderboardClient');
-const bus = require('./lib/gameEvents');
+const { createGameBus } = require('./lib/gameEvents');
 
 const PORT = process.env.PORT || 3000;
 const CLIENT_DIR = path.join(__dirname, '..', 'client');
@@ -54,6 +54,9 @@ function createGameServer(options = {}) {
     options.sessionTtlMs ? { ttlMs: options.sessionTtlMs } : {}
   );
   const gameStore = createGameStore();
+  // own bus per instance, otherwise two servers in one process would stack
+  // listeners on each other (showed up as double logged events in the tests)
+  const bus = createGameBus();
 
   // every open event stream gets every broadcast
   const sseClients = new Set();

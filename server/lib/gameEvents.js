@@ -1,9 +1,13 @@
-// One event bus for the game server. Everything that happens during a game
-// (question served, right or wrong answer) goes through here so the logging,
-// the leaderboard and the live updates can just listen for what they care about.
+// Creates the event bus for a server instance. Everything that happens during
+// a game (question served, right or wrong answer, login) is emitted on it, so
+// the logging, the leaderboard pusher and the live updates each just listen
+// for the events they care about.
 const { EventEmitter } = require('node:events');
 
-const bus = new EventEmitter();
-bus.setMaxListeners(50);
+function createGameBus() {
+  const bus = new EventEmitter();
+  bus.setMaxListeners(50);
+  return bus;
+}
 
-module.exports = bus;
+module.exports = { createGameBus };
