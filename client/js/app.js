@@ -96,7 +96,8 @@ function addFeedLine(text) {
 }
 
 // EventSource opens a long lived connection, the server pushes, the browser
-// fires a message event per frame - no polling needed
+// fires a message event per frame - no polling needed.
+// MDN: https://developer.mozilla.org/en-US/docs/Web/API/EventSource
 function startEventStream() {
   if (eventStream) {
     eventStream.close();
