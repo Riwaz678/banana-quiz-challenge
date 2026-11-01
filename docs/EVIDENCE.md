@@ -19,6 +19,9 @@ note, in the submission. The brief is explicit: no evidence, capped grade.
 
 ## 2. Git
 
+Repository: **https://github.com/Riwaz678/banana-quiz-challenge** (public, all
+commits pushed, `main` tracks `origin/main`, tag `v1.0` pushed 1 Nov 2026).
+
 ```
 git log --oneline --graph          # includes the feature/leaderboard merge
 git show --stat 3b2c500            # example: the tests commit
